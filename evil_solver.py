@@ -1,7 +1,7 @@
 '''
 Sudoku solver by Dillon Forrest.
-Solves easy puzzles on www.websudoku.com
-30 July 2012
+Supposed to solve  puzzles on www.websudoku.com, but presently incomplete.
+31 July 2012
 '''
 
 #!/usr/bin/python
@@ -9,50 +9,43 @@ import sys, re
 from pprint import pprint
 
 class Cell():
-	_registry = []
 	def __init__(self, value):
-		self._registry.append(self)
 		self.value = value
 		self.maybe = [1,2,3,4,5,6,7,8,9] if self.value == 0 else None
 
 class Row():
-	_registry = []
 	def __init__(self, large_number):
-		self._registry.append(self)
-		self.cells = self.createRow(large_number)
-	def createRow(self, large_number):
-		large_string = str(large_number)
-		row_values = [ int(large_string[i]) for i in range(9) ]
-		row = [ Cell(value) for value in row_values ]
-		return row
+		def createRow(self, large_number):
+			large_string = str(large_number)
+			row_values = [ int(large_string[i]) for i in range(9) ]
+			row = [ Cell(value) for value in row_values ]
+			return row
+		self.cells = createRow(self, large_number)
 
 class Column():
-	_registry = []
 	def __init__(self, rows, position):
-		self._registry.append(self)
-		self.cells = self.createColumn(rows, position)
-	def createColumn(self, rows, pos):
-		column = [ row.cells[pos] for row in rows ]
-		return column
+		def createColumn(self, rows, pos):
+			column = [ row.cells[pos] for row in rows ]
+			return column
+		self.cells = createColumn(self, rows, position)
 
 class Box():
-	_registry = []
 	def __init__(self, rows, i):
-		self._registry.append(self)
-		self.cells = self.createBox(rows, i)
-	def createBox(self, rows, i):
-		if   0 <= i <= 2: m = 0
-		elif 3 <= i <= 5: m = 3
-		elif 6 <= i <= 8: m = 6
-
-		if   i % 3 == 0:  n = 0
-		elif i % 3 == 1:  n = 3
-		elif i % 3 == 2:  n = 6
-
-		box = ( rows[ 0+m ].cells[ 0+n : 3+n] +
-			rows[ 1+m ].cells[ 0+n : 3+n ] +
-			rows[ 2+m ].cells[ 0+n : 3+n ] )
-		return box
+		def createBox(self, rows, i):
+			if   0 <= i <= 2: m = 0
+			elif 3 <= i <= 5: m = 3
+			elif 6 <= i <= 8: m = 6
+	
+			if   i % 3 == 0:  n = 0
+			elif i % 3 == 1:  n = 3
+			elif i % 3 == 2:  n = 6
+	
+			box = ( rows[ 0+m ].cells[ 0+n : 3+n] +
+				rows[ 1+m ].cells[ 0+n : 3+n ] +
+				rows[ 2+m ].cells[ 0+n : 3+n ] )
+			return box
+		
+		self.cells = createBox(self, rows, i)
 
 class Sudoku():
 	def __init__(self):
