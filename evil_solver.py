@@ -106,6 +106,7 @@ class Sudoku():
 		if possibility_reductions > 0:
 			return self.eliminatePossibilities()
 
+##########
 	def isolatePossibilities(self):
 		
 		def updateSingleNumberPossibility(self, i, container):
@@ -126,75 +127,93 @@ class Sudoku():
 						break
 		if values_added > 0:
 			return self.isolatePossibilities()
-	
-	def findSharedPossibilities(self):
+
+##########
+	def findSharedPossibilities(self, initial=None):
 		
-		def isSharedMaybes(self, cell, cells):
-			i = cells.index(cell)
-			others = cells[:i] + cells[i+1:]
-			maybes = [ c.maybe for c in others ]
-			in_common = maybes.count( cell.maybe )
-			if 2 <= in_common <=3: return True
-			else: return False
+		def isSharedMaybe(n, cells):
+			sharers = [ c for c in cells if c.maybe != None and n in c.maybe ]
+			if 2 <= len(sharers) <= 3: return sharers
+			else:	return None
 
-		def findSharers(self, cell, cells):
-			common_maybe = cell.maybe
-			sharers = [ c for c in cells if c.maybe == common_maybe ]
-			return sharers
-
-		def eliminateOtherMaybes(self, sharers, original_container):
-			
-			def eliminate(sharers, diff_container):
-				shared_maybe = sharers[0].maybe
-				for c in diff_container.cells:
-					if c not in sharers:
-						c.maybe = [ p for p in c.maybe if p not in shared_maybe ]
-
+		def cutOtherMaybes(self, n, sharers, cells):
+			def eliminate(n, sharers, cells):
+				for cell in cells:
+					if cell not in sharers and cell.maybe!=None and n in cell.maybe:
+						shared_maybes = [ c.maybe for c in sharers ]
+						cell.maybe = [ p for p in cell.maybe if p != n ]
+						if len(cell.maybe) == 1:
+							self.updateValue(cell, cell.maybe[0])
 			for bucket in self.buckets:
 				for container in bucket:
-					if container != original_container:
-						eliminate(sharers, container)
+					all_present = all( [ c in container.cells for c in sharers ] )
+					if container.cells != cells and all_present:
+						eliminate(n, sharers, container.cells)
+
 
 		for bucket in self.buckets:
 			for container in bucket:
-				for cell in container.cells:
-					if isSharedMaybes(cell, container.cells):
-						print "shared maybes were found"
-						sharers = findSharers(cell, container.cells)
-						eliminateOtherMaybes(sharers, container)
-		
-	def solve(self, starting_numbers=None):
-		
-		def checkBoard(self, to_print=False):
-			results = [ [cell.value for cell in row.cells] for row in self.rows]
-			if to_print: pprint(results)
-			return results
+				for n in range(1, 10):
+					sharers = isSharedMaybe(n, container.cells)
+					if sharers:
+						cutOtherMaybes(self, n, sharers, container.cells)
+		final = self.checkBoard()
+		if initial != final:
+			return self.findSharedPossibilities(initial=final)
+
+##########
+	def doTrialAndError(self):
+		self.ascertained_values = self.buckets
+		# pick out blank cells with only 2 possible candidate values
+		candidates = [ c for c in row.cells for row in self.rows \
+			if len(c.maybe) == 2 ]
+		for cand in candidates:
+			for p in cand.maybe:
+				self.updateValue(cand, p)
+				self.solve(trial_and_error=True)
+
+##########
+	def checkBoard(self, to_print=False):
+		numbers = [ [cell.value for cell in row.cells] for row in self.rows]
+		maybes = [ [cell.maybe for cell in row.cells] for row in self.rows]
+		if to_print: pprint(numbers)
+		return numbers, maybes
 	
+##########
+	def solve(self, initials=None, trial_and_error=False):
+		
 		def isDone(self):
 			values = [ cell.value for row in self.rows for cell in row.cells ]
 			if 0 not in values: return True
 			else: return False
 
-		def wereMistakesMade(self):
+		def isMistake(self):
 			for bucket in self.buckets:
 				for container in bucket:
 					values = [ cells.value for cells in container.cells ]
 					for i in range(1, 10):
 						if i not in values:
 							print "Made some mistakes.  :("
+							return True
 			print "No mistakes made!  :)"
+			return False
 
 		self.eliminatePossibilities()
 		self.isolatePossibilities()
-		ending_numbers = checkBoard(self, to_print=True)
+		self.findSharedPossibilities()
+		if isMistake(self): sys.quit()
+		finals = self.checkBoard(to_print=True)
 		if isDone(self):
-			wereMistakesMade(self)
+			return
 		else:
-			if starting_numbers == ending_numbers:
+			if initials == finals:
 				print "Got stuck!  :("
+				pprint([[ c.maybe for c in self.rows[i].cells ] for i in range(9)])
+				print "Running by trial and error now... gahhh... >_<"
+				self.doTrialAndError()
 			else:
 				print "Still solving... hm... B("
-				return self.solve(starting_numbers=ending_numbers)
+				return self.solve(initials = finals)
 
 if __name__ == '__main__':
 	sudoku = Sudoku()
