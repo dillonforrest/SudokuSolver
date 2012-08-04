@@ -5,7 +5,7 @@ Supposed to solve  puzzles on www.websudoku.com, but presently incomplete.
 '''
 
 #!/usr/bin/python
-import sys, re
+import sys, re, copy
 from pprint import pprint
 
 class Cell():
@@ -87,6 +87,7 @@ class Sudoku():
 		cell.maybe = None
 		self.updateMaybes(cell, v)
 
+##########
 	def eliminatePossibilities(self):
 		possibility_reductions = 0
 		for bucket in self.buckets:
@@ -163,14 +164,30 @@ class Sudoku():
 
 ##########
 	def doTrialAndError(self):
-		self.ascertained_values = self.buckets
+		self.ascertained_values = self.makeCopy(self.buckets)
 		# pick out blank cells with only 2 possible candidate values
-		candidates = [ c for c in row.cells for row in self.rows \
-			if len(c.maybe) == 2 ]
-		for cand in candidates:
-			for p in cand.maybe:
-				self.updateValue(cand, p)
-				self.solve(trial_and_error=True)
+		candidates = [ c for row in self.buckets[0] \
+			for c in row.cells if c.maybe!=None and len(c.maybe) == 2 ]
+		marker = [ copy.deepcopy(c) for c in candidates ]
+		pprint( [c.maybe for c in candidates] )
+		for i in range(len(candidates)):
+			for p in marker[i].maybe:
+				pprint( [ c.maybe for c in marker ] )
+				if self.solve(trial_and_error=True): return
+				self.buckets = self.makeCopy(self.ascertained_values)
+
+##########
+	def makeCopy(self, buckets):
+		all_cells = [copy.deepcopy(c) for row in buckets[0] for c in row.cells]
+		all_cells = [ [ all_cells[i*9:(i+1)*9] ] for i in range(9) ]
+		pprint(all_cells)
+		rows = [ Row(123456789) for _ in range(9) ]
+		for i in range(9):
+			rows[i].cells = all_cells[i*9:(i+1)*9]
+		columns = [ Column(rows, i) for i in range(9) ]
+		boxes = [ Box(rows, i) for i in range(9) ]
+		new_copy = [rows, columns, boxes]
+		return new_copy
 
 ##########
 	def checkBoard(self, to_print=False):
@@ -190,9 +207,10 @@ class Sudoku():
 		def isMistake(self):
 			for bucket in self.buckets:
 				for container in bucket:
-					values = [ cells.value for cells in container.cells ]
+					values = [ cell.value for cell in container.cells ]
 					for i in range(1, 10):
-						if i not in values:
+						number_count = [ v for v in values if v == i ]
+						if len(number_count) > 1:
 							print "Made some mistakes.  :("
 							return True
 			print "No mistakes made!  :)"
@@ -201,19 +219,31 @@ class Sudoku():
 		self.eliminatePossibilities()
 		self.isolatePossibilities()
 		self.findSharedPossibilities()
-		if isMistake(self): sys.quit()
 		finals = self.checkBoard(to_print=True)
+		if isMistake(self):
+			if not trial_and_error:
+				sys.exit()
+			else:
+				print "Trying something new... blarghh... @_@"
+				return
 		if isDone(self):
-			return
+			print "I'M FINISHED!!!!!!! Vn_n"
+			if not trial_and_error: return
+			else: 
+				return True
 		else:
 			if initials == finals:
-				print "Got stuck!  :("
-				pprint([[ c.maybe for c in self.rows[i].cells ] for i in range(9)])
-				print "Running by trial and error now... gahhh... >_<"
-				self.doTrialAndError()
+				print "Got stuck!  I couldn't fill any blanks!  :("
+				if not trial_and_error:
+					print "Running by trial and error now... gahhh... >_<"
+					self.doTrialAndError()
+				else:
+					print "Trying something new... blarghh... @_@"
+					return
 			else:
 				print "Still solving... hm... B("
-				return self.solve(initials = finals)
+				return self.solve(initials = finals, 
+					trial_and_error=trial_and_error)
 
 if __name__ == '__main__':
 	sudoku = Sudoku()
