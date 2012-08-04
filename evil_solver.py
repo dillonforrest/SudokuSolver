@@ -206,8 +206,6 @@ class Sudoku():
 			return True
 
 		print solving_message
-		print "BEFORE"
-		self.checkBoard(to_print=True)
 		self.eliminatePossibilities()
 		self.isolatePossibilities()
 		checkForMistakes(self, trial_and_error=False)
